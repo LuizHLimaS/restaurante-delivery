@@ -1,5 +1,11 @@
+import 'package:guia_restaurantes/data/network/requester.dart';
+import 'package:guia_restaurantes/data/repositories/user_repository.dart';
+import 'package:guia_restaurantes/models/user.dart';
+
 class SignUpViewmodel {
   //
+  final UserRepository _repository = UserRepository();
+
   String? validateName(String? value) {
     final name = value?.trim() ?? '';
     if (name.isEmpty) return 'Informe o seu nome';
@@ -35,5 +41,28 @@ class SignUpViewmodel {
     if (value == null || value.isEmpty) return 'Confirme a sua senha';
     if (value != password) return 'As senhas não conferem';
     return null;
+  }
+
+  Future<String?> register({
+    required String name,
+    required String email,
+    required String phone,
+    required String password,
+  }) async {
+    final user = User(
+      name: name,
+      email: email,
+      phone: phone,
+      password: password,
+    );
+
+    try {
+      await _repository.createUser(user);
+      return null;
+    } on RequestException catch (e) {
+      return e.message;
+    } catch (_) {
+      return 'Não foi possível criar a conta. Tente novamente.';
+    }
   }
 }

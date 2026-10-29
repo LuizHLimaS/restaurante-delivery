@@ -13,17 +13,16 @@ class SingUpPage extends StatefulWidget {
 }
 
 class _SingUpPageState extends State<SingUpPage> {
-  final _viewModel = SignUpViewmodel();
-
   bool _obscurePassword = true;
   bool _acceptedTerms = false;
+  bool _isLoading = false;
 
+  final _viewModel = SignUpViewmodel();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -169,8 +168,7 @@ class _SingUpPageState extends State<SingUpPage> {
   Widget _buildSubmitButton() {
     return ElevatedButton(
       onPressed: () {
-        final isValid = _formKey.currentState!.validate();
-        print('Formulário válido? $isValid');
+        _isLoading ? null : _submit();
       },
       style: ElevatedButton.styleFrom(
         backgroundColor: SingUpPage._ifoodRed,
@@ -178,10 +176,19 @@ class _SingUpPageState extends State<SingUpPage> {
         padding: const EdgeInsets.symmetric(vertical: 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
-      child: const Text(
-        'Criar conta',
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-      ),
+      child: _isLoading
+          ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : const Text(
+              'Criar conta',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
     );
   }
 
@@ -219,5 +226,50 @@ class _SingUpPageState extends State<SingUpPage> {
     _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+  }
+
+  Future<void> _submit() async {
+    final isValid = _formKey.currentState!.validate();
+    if (!isValid) return;
+    if (!_acceptedTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aceite os termos de uso para continuar')),
+      );
+
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    final error = await _viewModel.register(
+      name: _nameController.text,
+      email: _emailController.text,
+      phone: _phoneController.text,
+      password: _passwordController.text,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (error != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Conta criada! Boas-vindas, ${_nameController.text.trim()}',
+        ),
+      ),
+    );
+    Navigator.pop(context);
   }
 }
